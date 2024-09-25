@@ -1,0 +1,6 @@
+name = "variables"
+description = "Inspect configuration variables of a Spin application"
+version = "0.0.1"
+spin_compatibility = ">=2.7"
+license = "Apache-2.0"
+package = "./target/release/variables"
