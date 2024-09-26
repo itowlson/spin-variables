@@ -5,9 +5,11 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.89"
+async-trait = "0.1"
 clap = { version = "4.5.18", features = ["derive"] }
 comfy-table = "7.1.1"
 spin-common = { git = "https://github.com/fermyon/spin", branch = "v2.7" }
+spin-expressions = { git = "https://github.com/fermyon/spin", branch = "v2.7" }
 spin-locked-app = { git = "https://github.com/fermyon/spin", branch = "v2.7" }
 spin-manifest = { git = "https://github.com/fermyon/spin", branch = "v2.7" }
 spin-oci = { git = "https://github.com/fermyon/spin", branch = "v2.7" }
