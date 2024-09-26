@@ -4679,9 +4679,11 @@ name = "variables"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "clap",
  "comfy-table",
  "spin-common",
+ "spin-expressions",
  "spin-locked-app",
  "spin-manifest",
  "spin-oci",
