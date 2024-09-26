@@ -22,6 +22,7 @@ struct VariablesCommand {
     /// How to output the variables. The available options are:
     /// 
     /// * bash - a bash script which can be saved, edited, and used to export values
+    /// * kube - YAML containing secrets and configmaps for SpinKube
     /// * table - a human-readable tabular display format
     /// 
     /// The default is table.
@@ -47,6 +48,7 @@ impl VariablesCommand {
         match self.output {
             OutputFormat::Table => Box::new(format_table(variables)),
             OutputFormat::Bash => Box::new(format_bash(variables)),
+            OutputFormat::Kube => Box::new(format_kube(variables)),
         }
     }
 }
@@ -129,11 +131,86 @@ fn format_one_bash(variable: &VariableInfo) -> String {
     }
 }
 
+const KUBE_CONFIGMAP_NAME: &str = "spinapp-cfg";
+const KUBE_SECRET_NAME: &str = "spinapp-secret";
+
+fn format_kube(variables: &[VariableInfo]) -> impl std::fmt::Display {
+    let (secrets, configs): (Vec<_>, Vec<_>) = variables.iter().partition(|v| v.secret);
+
+    let mut blocks = vec![];
+
+    if !configs.is_empty() {
+        blocks.push(kube_block("ConfigMap", "v1", KUBE_CONFIGMAP_NAME, &configs));
+    }
+    if !secrets.is_empty() {
+        blocks.push(kube_block("Secret", "v1", KUBE_SECRET_NAME, &secrets));
+    }
+
+    blocks.push(kube_app_block(variables));
+
+    blocks.join("\n---\n")
+}
+
+fn kube_block(kind: &str, api_version: &str, name: &str, variables: &[&VariableInfo]) -> String {
+    let mut lines = vec![
+        format!("kind: {kind}"),
+        format!("apiVersion: {api_version}"),
+        format!("metadata:\n  name: {name}"),
+        "data:".to_owned(),
+    ];
+
+    lines.extend(variables.iter().map(format_one_kube));
+    lines.join("\n")
+}
+
+fn format_one_kube(variable: &&VariableInfo) -> String {
+    let (prefix, default_value) = match &variable.default_value {
+        Some(v) => ("# ", v.as_str()),
+        None => ("", "TO-DO"),
+    };
+    format!("  {prefix}{}: {}", variable.kube_name(), default_value)
+}
+
+fn kube_app_block(variables: &[VariableInfo]) -> String {
+    let mut lines = vec![
+        "spec:".to_owned(),
+        "  variables:".to_owned(),
+    ];
+
+    lines.extend(variables.iter().flat_map(format_one_for_app_block));
+    lines.join("\n")
+}
+
+fn format_one_for_app_block(variable: &VariableInfo) -> Vec<String> {
+    let (kind, store_name) = if variable.secret {
+        ("secret", KUBE_SECRET_NAME)
+    } else {
+        ("configMap", KUBE_CONFIGMAP_NAME)
+    };
+
+    let mut lines = vec![];
+    lines.push(format!("    - name: {}", variable.name));
+    lines.push(format!("      valueFrom:"));
+    lines.push(format!("        {}KeyRef:", kind));
+    lines.push(format!("          name: {}", store_name));
+    lines.push(format!("          key: {}", variable.kube_name()));
+    lines.push(format!("          optional: {}", !variable.required));
+
+    lines
+}
+
 struct VariableInfo {
     name: String,
     default_value: Option<String>,
     required: bool,
     secret: bool,
+}
+
+impl VariableInfo {
+    fn kube_name(&self) -> String {
+        use heck::ToLowerCamelCase;
+        self.name.to_lower_camel_case()
+    }
 }
 
 enum AppSource {
@@ -151,6 +228,7 @@ fn infer_app_source(provided: &Option<String>) -> anyhow::Result<AppSource> {
 
 #[derive(Clone, Debug, clap::ValueEnum)]
 enum OutputFormat {
-    Table,
     Bash,
+    Kube,
+    Table,
 }

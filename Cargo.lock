@@ -4681,6 +4681,7 @@ dependencies = [
  "anyhow",
  "clap",
  "comfy-table",
+ "heck 0.5.0",
  "spin-common",
  "spin-locked-app",
  "spin-manifest",

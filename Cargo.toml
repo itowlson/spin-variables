@@ -7,6 +7,7 @@ edition = "2021"
 anyhow = "1.0.89"
 clap = { version = "4.5.18", features = ["derive"] }
 comfy-table = "7.1.1"
+heck = "0.5.0"
 spin-common = { git = "https://github.com/fermyon/spin", branch = "v2.7" }
 spin-locked-app = { git = "https://github.com/fermyon/spin", branch = "v2.7" }
 spin-manifest = { git = "https://github.com/fermyon/spin", branch = "v2.7" }
